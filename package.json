@@ -10,7 +10,8 @@
     "./package.json": "./package.json"
   },
   "engines": { "node": ">=22.15" },
-  "files": ["index.js", "lib/client.js", "cordis.patch.yml", "README.md", "README.en.md"],
+  "icon": "./icon.png",
+  "files": ["index.js", "lib/client.js", "cordis.patch.yml", "icon.png", "README.md", "README.en.md"],
   "keywords": [
     "dsh",
     "dsh-plugin",
