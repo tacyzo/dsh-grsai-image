@@ -25,6 +25,7 @@ export const Config = Schema.object({
 
 const MIME_BY_EXTENSION = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' }
 const MAX_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024
+const MAX_OUTPUT_BYTES = 64 * 1024 * 1024
 
 // grsai accepts a ratio only for the base models; the tuned variants take pixel
 // values. Map a ratio to the 1K pixel size from grsai's own reference table.
@@ -49,14 +50,16 @@ const RATIO_TO_PIXELS = {
 
 function resolveAspectRatio(model, requested) {
   const value = typeof requested === 'string' ? requested.trim() : ''
-  if (value === '' || value.toLowerCase() === 'auto') return '1024x1024'
+  const pixelOnly = PIXEL_ONLY_MODEL.test(model)
+  // grsai accepts `auto` for every model; only the pixel-only variants need a concrete size.
+  if (value === '' || value.toLowerCase() === 'auto') return pixelOnly ? '1024x1024' : 'auto'
   const pixels = value.replace(/[×*]/g, 'x')
   if (/^\d+x\d+$/i.test(pixels)) return pixels
   if (value.includes(':')) {
     if (!/^\d+:\d+$/.test(value)) {
       throw new Error('aspectRatio must be a ratio such as 3:4 or a pixel size such as 1024x1024; got ' + JSON.stringify(value) + '.')
     }
-    if (!PIXEL_ONLY_MODEL.test(model)) return value
+    if (!pixelOnly) return value
     const mapped = RATIO_TO_PIXELS[value]
     if (mapped) return mapped
     throw new Error('Model ' + model + ' takes pixel sizes, not the ratio ' + value + '; use one of ' + Object.keys(RATIO_TO_PIXELS).join(', ') + '.')
@@ -118,11 +121,17 @@ async function safeOutputRoot(outputDir, exec) {
 }
 
 function safeFileName(value, extension) {
-  const base = path.basename(value || `image2-${new Date().toISOString().replace(/[:.]/g, '-')}`)
+  const fallback = `image2-${new Date().toISOString().replace(/[:.]/g, '-')}`
+  const raw = String(value ?? '').trim() || fallback
+  // Drop a known image extension before sanitizing, so `测试图.png` cannot degrade to `png.png`.
+  const stemRaw = path.basename(raw).replace(/\.(png|jpe?g|webp)$/i, '')
+  const stem = stemRaw
     .replace(/[^A-Za-z0-9._-]/g, '-')
-    .replace(/\.+$/, '')
-  const withoutExtension = base.replace(/\.(png|jpe?g|webp)$/i, '') || 'image2-output'
-  return `${withoutExtension}.${extension}`
+    .replace(/-{2,}/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '')
+  // A non-ASCII name collapses to dashes; fall back instead of saving a meaningless name.
+  const finalStem = /[A-Za-z0-9]/.test(stem) ? stem : fallback
+  return `${finalStem}.${extension}`
 }
 
 function imageExtension(bytes, source = 'Image relay response') {
@@ -220,6 +229,10 @@ export function apply(ctx, config) {
     async execute(args, exec) {
       exec?.signal?.throwIfAborted()
       const settings = current()
+      const model = typeof settings.model === 'string' ? settings.model.trim() : ''
+      if (!model) throw new Error('Configure the image2 model (for example gpt-image-2.5) before generating.')
+      const prompt = typeof args.prompt === 'string' ? args.prompt.trim() : ''
+      if (!prompt) throw new Error('prompt must contain a non-whitespace character.')
       // A non-empty apiKey configured on the row wins; the environment variable is
       // the fallback. Keep the original sentence first so existing diagnostics and
       // logs that match on it still match.
@@ -244,10 +257,10 @@ export function apply(ctx, config) {
       // grsai native endpoint: one URL serves text-to-image and image-to-image.
       // Reference images travel in the `images` array as base64 data URLs.
       const payload = {
-        model: settings.model,
-        prompt: args.prompt,
-        aspectRatio: resolveAspectRatio(settings.model, args.aspectRatio || args.size),
-        quality: resolveQuality(settings.model, settings.quality),
+        model,
+        prompt,
+        aspectRatio: resolveAspectRatio(model, args.aspectRatio || args.size),
+        quality: resolveQuality(model, settings.quality),
         replyType: 'json',
       }
       if (source) payload.images = [`data:${source.mime};base64,${source.bytes.toString('base64')}`]
@@ -267,7 +280,8 @@ export function apply(ctx, config) {
       try {
         body = JSON.parse(responseText)
       } catch {
-        throw new Error('Image relay returned invalid JSON (HTTP ' + response.status + ').')
+        const snippet = responseText.slice(0, 160).replace(/\s+/g, ' ')
+        throw new Error('Image relay returned invalid JSON (HTTP ' + response.status + '): ' + snippet)
       }
       if (!response.ok || body?.status === 'failed' || body?.status === 'violation') {
         const raw = body?.error ?? body?.message ?? 'Request rejected'
@@ -284,12 +298,15 @@ export function apply(ctx, config) {
 
       const download = await fetch(item.url, { signal: requestSignal() })
       if (!download.ok) throw new Error(`Image download failed: HTTP ${download.status}`)
+      const declared = Number(download.headers.get('content-length') ?? 0)
+      if (declared > MAX_OUTPUT_BYTES) throw new Error('Generated image exceeds the 64 MB cap (' + declared + ' bytes).')
       const bytes = Buffer.from(await download.arrayBuffer())
+      if (bytes.length > MAX_OUTPUT_BYTES) throw new Error('Generated image exceeds the 64 MB cap.')
 
       exec?.signal?.throwIfAborted()
       const fileName = safeFileName(args.filename, imageExtension(bytes))
       const outputPath = await saveUniqueImage(outputRoot, fileName, bytes)
-      return 'Saved ' + (source ? 'image-to-image result' : 'generated image') + ' to ' + outputPath + ' (model: ' + settings.model + '). Visual verification pending: use read_image to inspect this file before claiming the image meets the request.'
+      return 'Saved ' + (source ? 'image-to-image result' : 'generated image') + ' to ' + outputPath + ' (model: ' + model + '). Visual verification pending: use read_image to inspect this file before claiming the image meets the request.'
     },
   }))
 }

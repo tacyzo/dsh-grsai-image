@@ -21,6 +21,8 @@
 > - 新增 `quality` 配置，默认 `auto`；`gpt-image-2` 与 `gpt-image-2.5` 只接受 `auto`
 > - 默认模型为 `gpt-image-2.5`，默认地址为 `https://grsaiapi.com/v1`
 > - 对 `-vip` / `-flare` / `-sunburst` 这类只接受像素值的模型，比例会自动映射到 1K 像素尺寸
+> - 不传比例时向接口发 `auto`（由服务端决定），上述只吃像素的模型回落到 `1024x1024`
+> - `quality` 按模型校验，传错在本地就报错，不浪费一次请求
 > - `responseFormat` 已不再发送，保留该配置项只为兼容旧 profile
 
 **社区插件标签**：`dsh-plugin` · `deepseek-harness` · `cordis` · `bundle` · `text-to-image` · `image-to-image` · `image-generation` · `ai-image` · `image-relay` · `openai-compatible` · `inline-media` · `web-ui` · `tool`
