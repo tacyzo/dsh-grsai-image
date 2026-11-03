@@ -64,6 +64,26 @@ function resolveAspectRatio(model, requested) {
   throw new Error('aspectRatio must be a ratio such as 3:4 or a pixel size such as 1024x1024; got ' + JSON.stringify(value) + '.')
 }
 
+// grsai documents a different quality ladder per model. Unknown models pass the
+// value through untouched so an unrelated relay keeps working.
+const QUALITY_BY_MODEL = {
+  'gpt-image-2': ['auto'],
+  'gpt-image-2.5': ['auto'],
+  'gpt-image-2-vip': ['medium'],
+  'gpt-image-2.5-flare': ['low', 'medium', 'high'],
+  'gpt-image-2.5-sunburst': ['low', 'medium', 'high', 'xhigh', 'max'],
+}
+
+function resolveQuality(model, requested) {
+  const value = (typeof requested === 'string' ? requested.trim() : '') || 'auto'
+  const allowed = QUALITY_BY_MODEL[model]
+  if (allowed === undefined) return value
+  if (!allowed.includes(value)) {
+    throw new Error('Model ' + model + ' accepts quality ' + allowed.join('/') + '; got ' + JSON.stringify(value) + '.')
+  }
+  return value
+}
+
 function imageEndpoint(baseUrl) {
   let normalized = baseUrl.trim().replace(/\/+$/, '')
   if (!/\/v\d+$/i.test(normalized)) normalized += '/v1'
@@ -220,7 +240,6 @@ export function apply(ctx, config) {
         const timeout = AbortSignal.timeout(settings.timeoutMs)
         return exec?.signal ? AbortSignal.any([exec.signal, timeout]) : timeout
       }
-      const responseFormat = typeof settings.responseFormat === 'string' ? settings.responseFormat.trim() : ''
 
       // grsai native endpoint: one URL serves text-to-image and image-to-image.
       // Reference images travel in the `images` array as base64 data URLs.
@@ -228,7 +247,7 @@ export function apply(ctx, config) {
         model: settings.model,
         prompt: args.prompt,
         aspectRatio: resolveAspectRatio(settings.model, args.aspectRatio || args.size),
-        quality: settings.quality || 'auto',
+        quality: resolveQuality(settings.model, settings.quality),
         replyType: 'json',
       }
       if (source) payload.images = [`data:${source.mime};base64,${source.bytes.toString('base64')}`]
@@ -251,7 +270,9 @@ export function apply(ctx, config) {
         throw new Error('Image relay returned invalid JSON (HTTP ' + response.status + ').')
       }
       if (!response.ok || body?.status === 'failed' || body?.status === 'violation') {
-        const message = String(body?.error || body?.message || 'Request rejected').split(apiKey).join('[redacted]')
+        const raw = body?.error ?? body?.message ?? 'Request rejected'
+        const text = typeof raw === 'string' ? raw : (raw?.message ?? JSON.stringify(raw))
+        const message = String(text).split(apiKey).join('[redacted]')
         throw new Error('Image relay request failed (HTTP ' + response.status + '): ' + message.slice(0, 300))
       }
       if (body?.status !== 'succeeded') {
