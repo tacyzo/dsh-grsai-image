@@ -12,18 +12,57 @@ export const inject = ['tools']
 // `role('secret')`, so the settings service strips it from every value that crosses
 // the wire and the client renders a write-only input instead of the stored key.
 export const Config = Schema.object({
-  baseUrl: Schema.string().default('https://your-image-relay.example.com/v1').description('Image relay URL, including its API prefix.').volatile(),
-  model: Schema.string().default('gpt-image-1').description('Exact model ID supported by your image relay.').volatile(),
+  baseUrl: Schema.string().default('https://grsaiapi.com/v1').description('Image relay URL, including its API prefix. Defaults to the grsai global node.').volatile(),
+  model: Schema.string().default('gpt-image-2.5').description('Exact model ID. grsai offers gpt-image-2, gpt-image-2-vip, gpt-image-2.5, gpt-image-2.5-flare and gpt-image-2.5-sunburst.').volatile(),
+  quality: Schema.string().default('auto').description('grsai quality knob: gpt-image-2 and gpt-image-2.5 accept only auto; -flare accepts low/medium/high; -sunburst also accepts xhigh/max.').volatile(),
   apiKey: Schema.string().role('secret').volatile().description('Image relay API key stored in this profile. Takes precedence over apiKeyEnv; leave it empty to keep using the environment variable.'),
   apiKeyEnv: Schema.string().default('IMAGE2_API_KEY').description('Environment variable containing the image relay API key.').volatile(),
   autoGenerateAssets: Schema.boolean().default(false).description('Allow missing visual assets to be generated during software development after checking existing and external resources.').volatile(),
   outputDir: Schema.string().default('imagegen-output').description('Output directory inside the current session project.').volatile(),
   timeoutMs: Schema.number().min(1).max(2147483647).default(180000).description('Timeout for each complete relay or image download request, in milliseconds.').volatile(),
-  responseFormat: Schema.string().default('b64_json').description('Response format asked of the relay: b64_json returns the image bytes inline, url returns a link the plugin downloads, and an empty string omits the field for relays that reject it.').volatile(),
+  responseFormat: Schema.string().default('b64_json').description('Unused with the grsai protocol (kept so existing profiles keep loading). The grsai response always carries a URL.').volatile(),
 })
 
 const MIME_BY_EXTENSION = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' }
 const MAX_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024
+
+// grsai accepts a ratio only for the base models; the tuned variants take pixel
+// values. Map a ratio to the 1K pixel size from grsai's own reference table.
+const PIXEL_ONLY_MODEL = /(?:-vip|-flare|-sunburst)$/i
+const RATIO_TO_PIXELS = {
+  '1:1': '1024x1024',
+  '16:9': '1280x720',
+  '9:16': '720x1280',
+  '4:3': '1152x864',
+  '3:4': '864x1152',
+  '3:2': '1536x1024',
+  '2:3': '1024x1536',
+  '5:4': '1120x896',
+  '4:5': '896x1120',
+  '21:9': '1456x624',
+  '9:21': '624x1456',
+  '2:1': '1536x768',
+  '1:2': '768x1536',
+  '3:1': '2048x688',
+  '1:3': '688x2048',
+}
+
+function resolveAspectRatio(model, requested) {
+  const value = typeof requested === 'string' ? requested.trim() : ''
+  if (value === '' || value.toLowerCase() === 'auto') return '1024x1024'
+  const pixels = value.replace(/[×*]/g, 'x')
+  if (/^\d+x\d+$/i.test(pixels)) return pixels
+  if (value.includes(':')) {
+    if (!/^\d+:\d+$/.test(value)) {
+      throw new Error('aspectRatio must be a ratio such as 3:4 or a pixel size such as 1024x1024; got ' + JSON.stringify(value) + '.')
+    }
+    if (!PIXEL_ONLY_MODEL.test(model)) return value
+    const mapped = RATIO_TO_PIXELS[value]
+    if (mapped) return mapped
+    throw new Error('Model ' + model + ' takes pixel sizes, not the ratio ' + value + '; use one of ' + Object.keys(RATIO_TO_PIXELS).join(', ') + '.')
+  }
+  throw new Error('aspectRatio must be a ratio such as 3:4 or a pixel size such as 1024x1024; got ' + JSON.stringify(value) + '.')
+}
 
 function imageEndpoint(baseUrl) {
   let normalized = baseUrl.trim().replace(/\/+$/, '')
@@ -188,8 +227,8 @@ export function apply(ctx, config) {
       const payload = {
         model: settings.model,
         prompt: args.prompt,
-        aspectRatio: args.aspectRatio || args.size || '1:1',
-        quality: 'auto',
+        aspectRatio: resolveAspectRatio(settings.model, args.aspectRatio || args.size),
+        quality: settings.quality || 'auto',
         replyType: 'json',
       }
       if (source) payload.images = [`data:${source.mime};base64,${source.bytes.toString('base64')}`]

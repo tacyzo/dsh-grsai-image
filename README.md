@@ -11,6 +11,18 @@
 
 **Language**: [中文](README.md) · English
 
+> **本仓库是 fork，已改为 grsai 原生协议**
+>
+> 上游走 OpenAI 兼容的 `/v1/images/generations` 与 `/v1/images/edits`；这个 fork 改为 `POST /v1/api/generate`：
+>
+> - 端点统一，文生图与图生图都走同一个接口
+> - 参考图以 base64 data URL 放进 `images` 数组（已实测通过）
+> - 比例字段为 `aspectRatio`（驼峰），接受比例如 `3:4` 或像素如 `1024x1024`
+> - 新增 `quality` 配置，默认 `auto`；`gpt-image-2` 与 `gpt-image-2.5` 只接受 `auto`
+> - 默认模型为 `gpt-image-2.5`，默认地址为 `https://grsaiapi.com/v1`
+> - 对 `-vip` / `-flare` / `-sunburst` 这类只接受像素值的模型，比例会自动映射到 1K 像素尺寸
+> - `responseFormat` 已不再发送，保留该配置项只为兼容旧 profile
+
 **社区插件标签**：`dsh-plugin` · `deepseek-harness` · `cordis` · `bundle` · `text-to-image` · `image-to-image` · `image-generation` · `ai-image` · `image-relay` · `openai-compatible` · `inline-media` · `web-ui` · `tool`
 
 给 **DeepSeek Harness** 加上「一句话生成图片」和「拿参考图改图」的能力：接你自己的 OpenAI 兼容图片中转站，生成的图**直接内联显示在对话里**。

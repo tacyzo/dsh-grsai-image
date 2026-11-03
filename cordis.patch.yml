@@ -2,8 +2,9 @@
     - id: image2
       name: dsh-image2-tool
       config:
-        baseUrl: https://your-image-relay.example.com/v1
-        model: gpt-image-1
+        baseUrl: https://grsaiapi.com/v1
+        model: gpt-image-2.5
+        quality: auto
         apiKeyEnv: IMAGE2_API_KEY
         autoGenerateAssets: false
         outputDir: imagegen-output
