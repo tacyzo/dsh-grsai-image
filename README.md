@@ -128,6 +128,7 @@ dsh --profile image2-demo --from-default-profile web --dump-config
   config:
     baseUrl: https://grsaiapi.com/v1
     model: gpt-image-2.6          # 唯一必填的设置项：中转站接受的模型 ID
+    docsUrl: https://qmy27nhsd9.apifox.cn/452409160e0.md   # agent 选参数前读的文档
     apiKeyEnv: IMAGE2_API_KEY
     autoGenerateAssets: false
     outputDir: imagegen-output
@@ -138,6 +139,7 @@ dsh --profile image2-demo --from-default-profile web --dump-config
 | --- | --- |
 | `baseUrl` | 中转站地址，含 `/v1` |
 | `model` | 模型 ID，原样发送；插件不校验、不内置模型清单 |
+| `docsUrl` | agent 选参数前读的文档地址。默认指向 grsai 的 GPT Image 接口文档；换中转站时改成你自己的 |
 | `apiKeyEnv` | API key 的**环境变量名**（不是 key 本身） |
 | `apiKey` | 设置页里的遮蔽字段；非空时优先于 `apiKeyEnv`，后者作为兜底 |
 | `autoGenerateAssets` | 是否允许在软件开发任务中自动补齐缺失位图素材，默认 `false` |

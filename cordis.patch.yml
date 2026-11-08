@@ -4,6 +4,7 @@
       config:
         baseUrl: https://grsaiapi.com/v1
         model: gpt-image-2.6
+        docsUrl: https://qmy27nhsd9.apifox.cn/452409160e0.md
         apiKeyEnv: IMAGE2_API_KEY
         autoGenerateAssets: false
         outputDir: imagegen-output

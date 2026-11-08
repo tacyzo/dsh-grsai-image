@@ -14,6 +14,7 @@ export const inject = ['tools']
 export const Config = Schema.object({
   baseUrl: Schema.string().default('https://grsaiapi.com/v1').description('Image relay URL, including its API prefix. Defaults to the grsai global node.').volatile(),
   model: Schema.string().default('gpt-image-2.6').description('Model id passed straight through to the relay. Nothing validates or lists models here: set the id your relay serves and the plugin forwards it.').volatile(),
+  docsUrl: Schema.string().default('https://qmy27nhsd9.apifox.cn/452409160e0.md').description('Relay documentation the agent reads before choosing aspectRatio, quality, background or outputFormat. Point this at your own docs when you use another relay.').volatile(),
   apiKey: Schema.string().role('secret').volatile().description('Image relay API key stored in this profile. Takes precedence over apiKeyEnv; leave it empty to keep using the environment variable.'),
   apiKeyEnv: Schema.string().default('IMAGE2_API_KEY').description('Environment variable containing the image relay API key.').volatile(),
   autoGenerateAssets: Schema.boolean().default(false).description('Allow missing visual assets to be generated during software development after checking existing and external resources.').volatile(),
@@ -178,7 +179,8 @@ export function apply(ctx, config) {
       'If image inspection is unavailable, report that verification is incomplete. Do not claim success from a saved path alone. ' +
       'Announce specific mismatches and the retry number before retrying, preserving core requirements and previous images. ' +
       'Allow one initial generation and at most five further generation requests per task, including failed requests; stop when accepted or the budget is exhausted. ' +
-      'quality, background and outputFormat are forwarded verbatim: read the relay documentation for the chosen model and pass the values it supports, or omit them.',
+      'quality, background and outputFormat are forwarded verbatim: read the relay documentation for the chosen model and pass the values it supports, or omit them. ' +
+      'The documentation lives at ' + (initial.docsUrl || 'the relay docs') + ' — read it before choosing parameter values.',
     parameters: {
       prompt: { type: 'string', required: true, description: 'A specific visual description for the image.' },
       image: { type: 'string', description: 'Optional path to a local PNG, JPEG or WebP reference image, absolute or relative to the session project. When set, the relay runs image-to-image instead of text-to-image and keeps the reference subject, style and palette.' },
