@@ -1,6 +1,6 @@
 {
   "name": "dsh-grsai-image",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "DeepSeek Harness bundle that exposes a grsai-native image API (POST /v1/api/generate) as the image2_generate tool for text-to-image and image-to-image, with inline media previews.",
   "type": "module",
   "main": "index.js",
@@ -33,11 +33,11 @@
   "author": "544244857",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/544244857/dsh-image2-plugin.git"
+    "url": "git+https://github.com/tacyzo/dsh-grsai-image.git"
   },
-  "homepage": "https://github.com/544244857/dsh-image2-plugin#readme",
+  "homepage": "https://github.com/tacyzo/dsh-grsai-image#readme",
   "bugs": {
-    "url": "https://github.com/544244857/dsh-image2-plugin/issues"
+    "url": "https://github.com/tacyzo/dsh-grsai-image/issues"
   },
   "dsh": {
     "bundle": {

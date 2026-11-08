@@ -1,9 +1,9 @@
 # dsh-grsai-image
 
-![Version](https://img.shields.io/github/v/release/544244857/dsh-image2-plugin?display_name=tag&sort=semver&label=release)
+![Version](https://img.shields.io/github/v/release/tacyzo/dsh-grsai-image?display_name=tag&sort=semver&label=release)
 ![npm](https://img.shields.io/npm/v/dsh-grsai-image?label=npm)
 ![Downloads](https://img.shields.io/npm/dm/dsh-grsai-image?label=downloads)
-![License](https://img.shields.io/github/license/544244857/dsh-image2-plugin)
+![License](https://img.shields.io/github/license/tacyzo/dsh-grsai-image)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.15-339933?logo=node.js&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D4)
 ![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.1-4B5563)
@@ -29,7 +29,7 @@
 
 给 **DeepSeek Harness** 加上「一句话生成图片」和「拿参考图改图」的能力：接你自己的 OpenAI 兼容图片中转站，生成的图**直接内联显示在对话里**。
 
-![dsh-grsai-image 横幅](https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/banner.jpg)
+![dsh-grsai-image 横幅](https://raw.githubusercontent.com/tacyzo/dsh-grsai-image/main/docs/images/banner.jpg)
 
 ---
 
@@ -51,11 +51,11 @@
 
 **对话里长这样** —— 生成过程、参考图、版本对比都在回复里，图片由内联预览直接渲染，不用点开任何卡片（长图，可点开看全）：
 
-<img src="https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/example-usage.png" width="420" alt="在 DSH 对话中使用 dsh-grsai-image 的完整会话截图">
+<img src="https://raw.githubusercontent.com/tacyzo/dsh-grsai-image/main/docs/images/example-usage.png" width="420" alt="在 DSH 对话中使用 dsh-grsai-image 的完整会话截图">
 
 **最终结果** —— 该会话产出的成品（864 × 1152）：
 
-<img src="https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/example-result.jpg" width="360" alt="生成的成品图">
+<img src="https://raw.githubusercontent.com/tacyzo/dsh-grsai-image/main/docs/images/example-result.jpg" width="360" alt="生成的成品图">
 
 > 复现方式：装好插件后直接对 Agent 说「生成一张 XXX 的图」即可。`autoGenerateAssets` 保持默认 `false` 时，只有你明确要求才会生图。
 
@@ -100,10 +100,10 @@ dsh plugin --profile <profile> add dsh-grsai-image
 
 ```powershell
 # 从 GitHub Release 下载的 tgz
-dsh plugin --profile <profile> add ./dsh-grsai-image-0.4.1.tgz
+dsh plugin --profile <profile> add ./dsh-grsai-image-0.6.1.tgz
 
 # 直接从 GitHub 仓库安装
-dsh plugin --profile <profile> add github:544244857/dsh-image2-plugin
+dsh plugin --profile <profile> add github:tacyzo/dsh-grsai-image
 
 # 本地源码目录（开发调试）
 dsh plugin --profile <profile> add ./plugins/deepseek-harness-image2

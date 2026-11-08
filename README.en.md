@@ -1,9 +1,9 @@
 # dsh-grsai-image
 
-![Version](https://img.shields.io/github/v/release/544244857/dsh-image2-plugin?display_name=tag&sort=semver&label=release)
+![Version](https://img.shields.io/github/v/release/tacyzo/dsh-grsai-image?display_name=tag&sort=semver&label=release)
 ![npm](https://img.shields.io/npm/v/dsh-grsai-image?label=npm)
 ![Downloads](https://img.shields.io/npm/dm/dsh-grsai-image?label=downloads)
-![License](https://img.shields.io/github/license/544244857/dsh-image2-plugin)
+![License](https://img.shields.io/github/license/tacyzo/dsh-grsai-image)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.15-339933?logo=node.js&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D4)
 ![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.1-4B5563)
@@ -15,7 +15,7 @@
 
 Give **DeepSeek Harness** the ability to *generate an image from a sentence* and *edit an image from a reference* — pointed at your own OpenAI-compatible image relay, with the result **rendered inline in the conversation**.
 
-![dsh-grsai-image banner](https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/banner.jpg)
+![dsh-grsai-image banner](https://raw.githubusercontent.com/tacyzo/dsh-grsai-image/main/docs/images/banner.jpg)
 
 ---
 
@@ -37,11 +37,11 @@ Both images below come from one real session: the agent was asked to "generate a
 
 **Inside the conversation** — the generation steps, the reference image and the version comparison all sit in the reply, with images rendered by the inline preview (tall image, click to expand):
 
-<img src="https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/example-usage.png" width="420" alt="A full session using dsh-grsai-image inside DSH">
+<img src="https://raw.githubusercontent.com/tacyzo/dsh-grsai-image/main/docs/images/example-usage.png" width="420" alt="A full session using dsh-grsai-image inside DSH">
 
 **The result** — what that session produced (864 × 1152):
 
-<img src="https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/example-result.jpg" width="360" alt="Generated result">
+<img src="https://raw.githubusercontent.com/tacyzo/dsh-grsai-image/main/docs/images/example-result.jpg" width="360" alt="Generated result">
 
 > To reproduce: install the plugin and simply ask the agent to "generate an image of …". With `autoGenerateAssets` left at its default `false`, nothing is generated unless you ask for it.
 
@@ -86,10 +86,10 @@ Replace `<profile>` with the profile you actually use (for example `web` or `def
 
 ```powershell
 # A tgz downloaded from a GitHub release
-dsh plugin --profile <profile> add ./dsh-grsai-image-0.4.1.tgz
+dsh plugin --profile <profile> add ./dsh-grsai-image-0.6.1.tgz
 
 # Straight from the GitHub repository
-dsh plugin --profile <profile> add github:544244857/dsh-image2-plugin
+dsh plugin --profile <profile> add github:tacyzo/dsh-grsai-image
 
 # A local source checkout (for development)
 dsh plugin --profile <profile> add ./plugins/deepseek-harness-image2
