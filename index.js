@@ -21,7 +21,7 @@ export const Config = Schema.object({
   timeoutMs: Schema.number().min(1).max(2147483647).default(180000).description('Timeout for each complete relay or image download request, in milliseconds.').volatile(),
 })
 
-const MIME_BY_EXTENSION = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' }
+const MIME_BY_EXTENSION = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }
 const MAX_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024
 const MAX_OUTPUT_BYTES = 64 * 1024 * 1024
 
@@ -83,7 +83,7 @@ function safeFileName(value, extension) {
   const fallback = `image2-${new Date().toISOString().replace(/[:.]/g, '-')}`
   const raw = String(value ?? '').trim() || fallback
   // Drop a known image extension before sanitizing, so `测试图.png` cannot degrade to `png.png`.
-  const stemRaw = path.basename(raw).replace(/\.(png|jpe?g|webp)$/i, '')
+  const stemRaw = path.basename(raw).replace(/\.(png|jpe?g|webp|gif|svg)$/i, '')
   const stem = stemRaw
     .replace(/[^A-Za-z0-9._-]/g, '-')
     .replace(/-{2,}/g, '-')
@@ -97,7 +97,11 @@ function imageExtension(bytes, source = 'Image relay response') {
   if (bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return 'png'
   if (bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return 'jpg'
   if (bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP') return 'webp'
-  throw new Error(source + ' contained no supported PNG, JPEG or WebP image bytes.')
+  const header = bytes.toString('ascii', 0, 6)
+  if (header === 'GIF87a' || header === 'GIF89a') return 'gif'
+  // SVG is text, not a binary signature: inspect the opening tags only.
+  if (/<svg[\s>]/i.test(bytes.toString('utf8', 0, 1024))) return 'svg'
+  throw new Error(source + ' contained no supported PNG, JPEG, WebP, GIF or SVG image bytes.')
 }
 
 async function saveUniqueImage(outputRoot, fileName, bytes) {
