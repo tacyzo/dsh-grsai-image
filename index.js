@@ -3,7 +3,7 @@ import path from 'node:path'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import Schema from '@deepseek-ai/schemastery'
 
-export const name = 'dsh-image2-tool'
+export const name = 'dsh-grsai-image'
 export const inject = ['tools']
 
 // Every field is marked `.volatile()` so the official settings service publishes it
@@ -240,7 +240,7 @@ export function apply(ctx, config) {
       const apiKey = configuredKey || process.env[settings.apiKeyEnv]
       if (!apiKey) {
         throw new Error(
-          `Set the ${settings.apiKeyEnv} environment variable before using image2. 也可以直接在 DSH 侧边栏 → Plugins → dsh-image2-tool → image2 的配置页里填写 API Key。`,
+          `Set the ${settings.apiKeyEnv} environment variable before using image2. 也可以直接在 DSH 侧边栏 → Plugins → dsh-grsai-image → image2 的配置页里填写 API Key。`,
         )
       }
       if (!settings.baseUrl || settings.baseUrl.includes('your-image-relay.example.com')) {

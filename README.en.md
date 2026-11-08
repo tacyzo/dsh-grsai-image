@@ -1,8 +1,8 @@
-# dsh-image2-tool
+# dsh-grsai-image
 
 ![Version](https://img.shields.io/github/v/release/544244857/dsh-image2-plugin?display_name=tag&sort=semver&label=release)
-![npm](https://img.shields.io/npm/v/dsh-image2-tool?label=npm)
-![Downloads](https://img.shields.io/npm/dm/dsh-image2-tool?label=downloads)
+![npm](https://img.shields.io/npm/v/dsh-grsai-image?label=npm)
+![Downloads](https://img.shields.io/npm/dm/dsh-grsai-image?label=downloads)
 ![License](https://img.shields.io/github/license/544244857/dsh-image2-plugin)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.15-339933?logo=node.js&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D4)
@@ -15,7 +15,7 @@
 
 Give **DeepSeek Harness** the ability to *generate an image from a sentence* and *edit an image from a reference* — pointed at your own OpenAI-compatible image relay, with the result **rendered inline in the conversation**.
 
-![dsh-image2-tool banner](https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/banner.jpg)
+![dsh-grsai-image banner](https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/banner.jpg)
 
 ---
 
@@ -23,7 +23,7 @@ Give **DeepSeek Harness** the ability to *generate an image from a sentence* and
 
 | Capability | What it means |
 | --- | --- |
-| One-line install | The standard `dsh plugin --profile <profile> add dsh-image2-tool`; after a restart `image2_generate` shows up in the tool list |
+| One-line install | The standard `dsh plugin --profile <profile> add dsh-grsai-image`; after a restart `image2_generate` shows up in the tool list |
 | Your own relay | Text-to-image goes to `POST /images/generations`, image-to-image goes to `POST /images/edits`; both `b64_json` and image-URL responses are supported |
 | Reference-guided | Pass a local PNG/JPEG/WebP as `image` and character consistency, style and palette hold far better than with text alone |
 | Graphical config | A built-in settings row on the sidebar **Plugins** page (including a masked `apiKey` field); `cordis.patch.yml` works just as well |
@@ -37,7 +37,7 @@ Both images below come from one real session: the agent was asked to "generate a
 
 **Inside the conversation** — the generation steps, the reference image and the version comparison all sit in the reply, with images rendered by the inline preview (tall image, click to expand):
 
-<img src="https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/example-usage.png" width="420" alt="A full session using dsh-image2-tool inside DSH">
+<img src="https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/example-usage.png" width="420" alt="A full session using dsh-grsai-image inside DSH">
 
 **The result** — what that session produced (864 × 1152):
 
@@ -77,7 +77,7 @@ Details:
 ### The official generic way (recommended)
 
 ```powershell
-dsh plugin --profile <profile> add dsh-image2-tool
+dsh plugin --profile <profile> add dsh-grsai-image
 ```
 
 Replace `<profile>` with the profile you actually use (for example `web` or `default`). **Restart DSH** afterwards and `image2_generate` appears in the tool list.
@@ -86,7 +86,7 @@ Replace `<profile>` with the profile you actually use (for example `web` or `def
 
 ```powershell
 # A tgz downloaded from a GitHub release
-dsh plugin --profile <profile> add ./dsh-image2-tool-0.4.1.tgz
+dsh plugin --profile <profile> add ./dsh-grsai-image-0.4.1.tgz
 
 # Straight from the GitHub repository
 dsh plugin --profile <profile> add github:544244857/dsh-image2-plugin
@@ -105,13 +105,13 @@ dsh --profile image2-demo --from-default-profile web --dump-config
 
 The two routes are equivalent — pick **one**.
 
-**① Graphical**: sidebar → Plugins → `dsh-image2-tool` → the `image2` row, fill in the fields (the `apiKey` field is masked) and save; it is written back to the current profile's Cordis patch.
+**① Graphical**: sidebar → Plugins → `dsh-grsai-image` → the `image2` row, fill in the fields (the `apiKey` field is masked) and save; it is written back to the current profile's Cordis patch.
 
 **② Configuration file**: `$DSH_HOME/profiles/<profile>/cordis.patch.yml` (or `~/.dsh/profiles/<profile>/cordis.patch.yml` when `DSH_HOME` is unset):
 
 ```yaml
 - id: image2
-  name: dsh-image2-tool
+  name: dsh-grsai-image
   config:
     baseUrl: https://your-image-relay.example.com/v1
     model: grok-imagine-image-2.0
@@ -167,7 +167,7 @@ It is maintained upstream under the MIT licence; this plugin neither vendors nor
 | `Image download failed` or `ConnectTimeoutError` while downloading | The relay returned a temporary link on its own CDN that this machine cannot reach. Set `responseFormat` to `b64_json` so the bytes come back inline |
 | Image-to-image reports `Source image not found` or `contained no supported PNG, JPEG or WebP image bytes` | The reference path is wrong, or the file is not actually an image (type is decided by magic bytes — renaming does not help) |
 | Image-to-image reports `HTTP 400: model is required` | That relay has no `/images/edits` route. Text-to-image still works; image-to-image needs a relay that supports it |
-| `image2_generate` is missing from the tool list | The profile install did not succeed or DSH was not restarted; check that `dsh.profile.bundles` in the profile's `package.json` contains `dsh-image2-tool` |
+| `image2_generate` is missing from the tool list | The profile install did not succeed or DSH was not restarted; check that `dsh.profile.bundles` in the profile's `package.json` contains `dsh-grsai-image` |
 | The settings page shows `unavailable` | That profile has no settings service; use the manual `cordis.patch.yml` row above |
 | Images are not rendered inline | Make sure `@wisdoverse/dsh-inline-media-viewer` is also in `dsh.profile.bundles`, then restart DSH |
 
@@ -182,7 +182,7 @@ It is maintained upstream under the MIT licence; this plugin neither vendors nor
 ```mermaid
 flowchart LR
   U[User: generate / edit an image] --> A[Agent]
-  A -->|image2_generate| T[dsh-image2-tool]
+  A -->|image2_generate| T[dsh-grsai-image]
   T -->|no image: POST /images/generations| R[Your image relay]
   T -->|with image: POST /images/edits| R
   R -->|b64_json or url| T

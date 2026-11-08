@@ -1,8 +1,8 @@
-# dsh-image2-tool
+# dsh-grsai-image
 
 ![Version](https://img.shields.io/github/v/release/544244857/dsh-image2-plugin?display_name=tag&sort=semver&label=release)
-![npm](https://img.shields.io/npm/v/dsh-image2-tool?label=npm)
-![Downloads](https://img.shields.io/npm/dm/dsh-image2-tool?label=downloads)
+![npm](https://img.shields.io/npm/v/dsh-grsai-image?label=npm)
+![Downloads](https://img.shields.io/npm/dm/dsh-grsai-image?label=downloads)
 ![License](https://img.shields.io/github/license/544244857/dsh-image2-plugin)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.15-339933?logo=node.js&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D4)
@@ -29,7 +29,7 @@
 
 给 **DeepSeek Harness** 加上「一句话生成图片」和「拿参考图改图」的能力：接你自己的 OpenAI 兼容图片中转站，生成的图**直接内联显示在对话里**。
 
-![dsh-image2-tool 横幅](https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/banner.jpg)
+![dsh-grsai-image 横幅](https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/banner.jpg)
 
 ---
 
@@ -37,7 +37,7 @@
 
 | 能力 | 说明 |
 | --- | --- |
-| 一行安装 | 官方通用方式 `dsh plugin --profile <profile> add dsh-image2-tool`，重启后工具表出现 `image2_generate` |
+| 一行安装 | 官方通用方式 `dsh plugin --profile <profile> add dsh-grsai-image`，重启后工具表出现 `image2_generate` |
 | 自己的中转站 | 文生图走 `POST /images/generations`，图生图走 `POST /images/edits`，同时支持 `b64_json` 与图片 URL 两种返回 |
 | 参考图引导 | 给 `image` 传一张本地 PNG/JPEG/WebP，角色一致性、画风与配色远比纯文字描述稳 |
 | 图形化配置 | 侧边栏 Plugins 页内置设置行（含遮蔽的 `apiKey` 字段），也可直接写 `cordis.patch.yml` |
@@ -51,7 +51,7 @@
 
 **对话里长这样** —— 生成过程、参考图、版本对比都在回复里，图片由内联预览直接渲染，不用点开任何卡片（长图，可点开看全）：
 
-<img src="https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/example-usage.png" width="420" alt="在 DSH 对话中使用 dsh-image2-tool 的完整会话截图">
+<img src="https://raw.githubusercontent.com/544244857/dsh-image2-plugin/main/docs/images/example-usage.png" width="420" alt="在 DSH 对话中使用 dsh-grsai-image 的完整会话截图">
 
 **最终结果** —— 该会话产出的成品（864 × 1152）：
 
@@ -91,7 +91,7 @@
 ### 官方通用方式（推荐）
 
 ```powershell
-dsh plugin --profile <profile> add dsh-image2-tool
+dsh plugin --profile <profile> add dsh-grsai-image
 ```
 
 把 `<profile>` 换成你常用的 profile 名（例如 `web`、`default`）。装完**重启 DSH**，工具表里就会出现 `image2_generate`。
@@ -100,7 +100,7 @@ dsh plugin --profile <profile> add dsh-image2-tool
 
 ```powershell
 # 从 GitHub Release 下载的 tgz
-dsh plugin --profile <profile> add ./dsh-image2-tool-0.4.1.tgz
+dsh plugin --profile <profile> add ./dsh-grsai-image-0.4.1.tgz
 
 # 直接从 GitHub 仓库安装
 dsh plugin --profile <profile> add github:544244857/dsh-image2-plugin
@@ -119,13 +119,13 @@ dsh --profile image2-demo --from-default-profile web --dump-config
 
 两种方式等价、可互换，**二选一**即可。
 
-**① 图形界面**：侧边栏 → Plugins → `dsh-image2-tool` → `image2` 行，逐项填写（含遮蔽的 `apiKey` 密钥字段），保存即写回当前 profile 的 Cordis patch。
+**① 图形界面**：侧边栏 → Plugins → `dsh-grsai-image` → `image2` 行，逐项填写（含遮蔽的 `apiKey` 密钥字段），保存即写回当前 profile 的 Cordis patch。
 
 **② 配置文件**：`$DSH_HOME/profiles/<profile>/cordis.patch.yml`（未设置 `DSH_HOME` 时为 `~/.dsh/profiles/<profile>/cordis.patch.yml`）：
 
 ```yaml
 - id: image2
-  name: dsh-image2-tool
+  name: dsh-grsai-image
   config:
     baseUrl: https://your-image-relay.example.com/v1
     model: grok-imagine-image-2.0
@@ -181,7 +181,7 @@ dsh --profile web
 | `Image download failed` 或下载时 `ConnectTimeoutError` | 中转站返回的是它自己 CDN 的临时链接，而这台机器连不上那个域名。把 `responseFormat` 设为 `b64_json`，让图片字节直接内联回传 |
 | 图生图报 `Source image not found` / `contained no supported PNG, JPEG or WebP image bytes` | 参考图路径不对，或文件其实不是图片（按魔术字节判定，改扩展名没用） |
 | 图生图报 `HTTP 400: model is required` | 该中转站没有 `/images/edits` 路由。文生图仍可用，图生图需换支持的中转站 |
-| 工具表里没有 `image2_generate` | profile 未安装成功或未重启；确认 profile 的 `package.json` 中 `dsh.profile.bundles` 含 `dsh-image2-tool` |
+| 工具表里没有 `image2_generate` | profile 未安装成功或未重启；确认 profile 的 `package.json` 中 `dsh.profile.bundles` 含 `dsh-grsai-image` |
 | 设置页显示 `unavailable` | 该 profile 没有 settings 服务，改用上面的 `cordis.patch.yml` 手工行 |
 | 图片没内联显示 | 确认 `@wisdoverse/dsh-inline-media-viewer` 也在 `dsh.profile.bundles` 中，并重启 DSH |
 
@@ -196,7 +196,7 @@ dsh --profile web
 ```mermaid
 flowchart LR
   U[用户: 生成 / 改一张图] --> A[Agent]
-  A -->|image2_generate| T[dsh-image2-tool]
+  A -->|image2_generate| T[dsh-grsai-image]
   T -->|无 image: POST /images/generations| R[你的图片中转站]
   T -->|有 image: POST /images/edits| R
   R -->|b64_json 或 url| T

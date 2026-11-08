@@ -1,6 +1,6 @@
 - insert:
     - id: image2
-      name: dsh-image2-tool
+      name: dsh-grsai-image
       config:
         baseUrl: https://grsaiapi.com/v1
         model: gpt-image-2.5
