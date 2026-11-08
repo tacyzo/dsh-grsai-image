@@ -13,13 +13,7 @@ export const inject = ['tools']
 // the wire and the client renders a write-only input instead of the stored key.
 export const Config = Schema.object({
   baseUrl: Schema.string().default('https://grsaiapi.com/v1').description('Image relay URL, including its API prefix. Defaults to the grsai global node.').volatile(),
-  model: Schema.string().default('gpt-image-2.6').description('Model id passed straight through to the relay. No model list is enforced here: use whatever id your relay serves.').volatile(),
-  quality: Schema.string().default('auto').description('Default quality value sent when a call does not pass one.').volatile(),
-  qualityOptions: Schema.array(String).default(['auto', 'low', 'medium', 'high', 'xhigh', 'max']).description('Quality values a call may use. Edit this list to trim or extend it; an empty list allows any value.').volatile(),
-  background: Schema.string().default('').description('Default background value sent when a call does not pass one. Empty omits the field.').volatile(),
-  backgroundOptions: Schema.array(String).default(['transparent']).description('Background values a call may use. An empty value always means "omit the field".').volatile(),
-  outputFormat: Schema.string().default('').description('Default output format sent when a call does not pass one. Empty omits the field.').volatile(),
-  outputFormatOptions: Schema.array(String).default(['png', 'gif', 'svg']).description('Output format values a call may use. Edit this list to trim or extend it.').volatile(),
+  model: Schema.string().default('gpt-image-2.6').description('Model id passed straight through to the relay. Nothing validates or lists models here: set the id your relay serves and the plugin forwards it.').volatile(),
   apiKey: Schema.string().role('secret').volatile().description('Image relay API key stored in this profile. Takes precedence over apiKeyEnv; leave it empty to keep using the environment variable.'),
   apiKeyEnv: Schema.string().default('IMAGE2_API_KEY').description('Environment variable containing the image relay API key.').volatile(),
   autoGenerateAssets: Schema.boolean().default(false).description('Allow missing visual assets to be generated during software development after checking existing and external resources.').volatile(),
@@ -46,19 +40,10 @@ function resolveAspectRatio(requested) {
   throw new Error('aspectRatio must be a ratio such as 3:4, a pixel size such as 1024x1024, or auto; got ' + JSON.stringify(value) + '.')
 }
 
-// Options come from the profile config, not from a per-model table: the relay
-// owner decides which values may be used. An empty list disables the check.
-function resolveOption(label, requested, fallback, options) {
-  const value = (typeof requested === 'string' ? requested.trim() : '') || (typeof fallback === 'string' ? fallback.trim() : '')
-  if (value === '') return ''
-  const allowed = Array.isArray(options)
-    ? options.map((option) => String(option).trim()).filter((option) => option !== '')
-    : []
-  if (allowed.length === 0) return value
-  if (!allowed.includes(value)) {
-    throw new Error(label + ' must be one of ' + allowed.join('/') + '; got ' + JSON.stringify(value) + '. Extend the configured options to allow more.')
-  }
-  return value
+// Options come from the call, not from a configured list: the agent reads the
+// relay's documentation for the chosen model and passes the values it needs.
+function callerOption(requested) {
+  return typeof requested === 'string' ? requested.trim() : ''
 }
 
 function imageEndpoint(baseUrl) {
@@ -189,16 +174,16 @@ export function apply(ctx, config) {
       'If image inspection is unavailable, report that verification is incomplete. Do not claim success from a saved path alone. ' +
       'Announce specific mismatches and the retry number before retrying, preserving core requirements and previous images. ' +
       'Allow one initial generation and at most five further generation requests per task, including failed requests; stop when accepted or the budget is exhausted. ' +
-      'quality, background and outputFormat only accept values listed in the profile settings row; the model is free-form.',
+      'quality, background and outputFormat are forwarded verbatim: read the relay documentation for the chosen model and pass the values it supports, or omit them.',
     parameters: {
       prompt: { type: 'string', required: true, description: 'A specific visual description for the image.' },
       image: { type: 'string', description: 'Optional path to a local PNG, JPEG or WebP reference image, absolute or relative to the session project. When set, the relay runs image-to-image instead of text-to-image and keeps the reference subject, style and palette.' },
       filename: { type: 'string', description: 'Optional safe filename without a directory path.' },
       size: { type: 'string', description: 'Pixel size such as 1536x1024. Used when aspectRatio is omitted; relays that honor either form accept it directly.' },
       aspectRatio: { type: 'string', description: 'Composition: a ratio such as 3:4, a pixel size such as 1024x1024, or auto. Omitted means auto. Some model variants reject the ratio form and want pixels.' },
-      quality: { type: 'string', description: 'Optional quality value. Must be one of the values configured in qualityOptions; omitted uses the configured default.' },
-      background: { type: 'string', description: 'Optional background value, for example transparent when the model supports it. Omitted uses the configured default, and an empty value sends nothing.' },
-      outputFormat: { type: 'string', description: 'Optional output format such as png, gif or svg when the model supports it. Omitted uses the configured default, and an empty value sends nothing.' },
+      quality: { type: 'string', description: 'Optional quality value, forwarded verbatim. Read the relay documentation for the values the chosen model accepts and pass the best fit for the request; omit to leave it unset.' },
+      background: { type: 'string', description: 'Optional background value, forwarded verbatim, for example transparent when the model supports it. Omit to leave the field unset.' },
+      outputFormat: { type: 'string', description: 'Optional output format, forwarded verbatim, for example png, gif or svg when the model supports it. Omit to leave the field unset.' },
     },
     output: {
       schema: { type: 'string' },
@@ -238,13 +223,14 @@ export function apply(ctx, config) {
         model,
         prompt,
         aspectRatio: resolveAspectRatio(args.aspectRatio || args.size),
-        quality: resolveOption('quality', args.quality, settings.quality, settings.qualityOptions),
         replyType: 'json',
       }
-      const background = resolveOption('background', args.background, settings.background, settings.backgroundOptions)
-      if (background !== '') payload.background = background
-      const outputFormat = resolveOption('outputFormat', args.outputFormat, settings.outputFormat, settings.outputFormatOptions)
-      if (outputFormat !== '') payload.outputFormat = outputFormat
+      // Generation knobs stay caller-driven: the agent reads the relay docs for the
+      // chosen model, so the plugin forwards whatever it was given and adds nothing.
+      for (const key of ['quality', 'background', 'outputFormat']) {
+        const value = callerOption(args[key])
+        if (value !== '') payload[key] = value
+      }
       if (source) payload.images = [`data:${source.mime};base64,${source.bytes.toString('base64')}`]
       const response = await fetch(imageEndpoint(settings.baseUrl), {
         method: 'POST',

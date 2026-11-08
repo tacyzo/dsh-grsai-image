@@ -19,7 +19,8 @@
 > - 参考图以 base64 data URL 放进 `images` 数组（已实测通过）
 > - 比例字段为 `aspectRatio`（驼峰），接受比例如 `3:4` 或像素如 `1024x1024`；不传则发 `auto`
 > - **不校验模型**：`model` 原样发给中转站，插件不内置模型清单
-> - `quality` / `background` / `outputFormat` 三个可选参数，可用值由配置里的 `qualityOptions` / `backgroundOptions` / `outputFormatOptions` 列表决定，列表可自行增删
+> - **配置里只填模型名**：`quality` / `background` / `outputFormat` / `aspectRatio` 都不写进配置，由 agent 每次调用时按中转站实时文档选值
+> - 插件对这些参数只做转发，不校验、不加默认；比例只检查格式（比例 / 像素 / auto）
 > - 部分模型变体只接受像素值，插件不做映射：传比例被拒时改传像素即可
 > - 默认地址为 `https://grsaiapi.com/v1`
 
@@ -126,13 +127,7 @@ dsh --profile image2-demo --from-default-profile web --dump-config
   name: dsh-grsai-image
   config:
     baseUrl: https://grsaiapi.com/v1
-    model: gpt-image-2.6          # 任意中转站接受的模型 ID，插件不做校验
-    quality: auto                 # 调用不传 quality 时的默认值
-    qualityOptions: [auto, low, medium, high, xhigh, max]
-    background: ""                # 留空 = 不发送该字段
-    backgroundOptions: [transparent]
-    outputFormat: ""              # 留空 = 不发送该字段
-    outputFormatOptions: [png, gif, svg]
+    model: gpt-image-2.6          # 唯一必填的设置项：中转站接受的模型 ID
     apiKeyEnv: IMAGE2_API_KEY
     autoGenerateAssets: false
     outputDir: imagegen-output
@@ -143,19 +138,13 @@ dsh --profile image2-demo --from-default-profile web --dump-config
 | --- | --- |
 | `baseUrl` | 中转站地址，含 `/v1` |
 | `model` | 模型 ID，原样发送；插件不校验、不内置模型清单 |
-| `quality` | 默认质量档位；调用可覆盖 |
-| `qualityOptions` | 允许的 `quality` 值列表。空数组表示不限制 |
-| `background` | 默认背景值；**空字符串表示完全不发送该字段** |
-| `backgroundOptions` | 允许的 `background` 值列表 |
-| `outputFormat` | 默认输出格式；**空字符串表示完全不发送该字段** |
-| `outputFormatOptions` | 允许的 `outputFormat` 值列表 |
 | `apiKeyEnv` | API key 的**环境变量名**（不是 key 本身） |
 | `apiKey` | 设置页里的遮蔽字段；非空时优先于 `apiKeyEnv`，后者作为兜底 |
 | `autoGenerateAssets` | 是否允许在软件开发任务中自动补齐缺失位图素材，默认 `false` |
 | `outputDir` | 输出目录，相对会话目录解析并强制不越界 |
 | `timeoutMs` | 单次请求超时 |
 
-> 三个 `*Options` 列表目前只能在 `cordis.patch.yml` 里改（设置页只有单值输入框）。校验只在本地做形状检查：值不在列表里会直接报错并列出可选值，不会浪费一次请求。
+> **配置里只有模型名需要你操心。** 比例、质量、背景、输出格式都不写进配置：agent 在每次调用时按中转站实时文档（`POST /v1/api/generate`）为当前模型挑选合适的值，插件原样转发，不做校验、不加默认。
 
 API key 交给**启动 DSH 的那个进程**：
 
