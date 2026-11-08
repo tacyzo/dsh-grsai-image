@@ -17,13 +17,11 @@
 >
 > - 端点统一，文生图与图生图都走同一个接口
 > - 参考图以 base64 data URL 放进 `images` 数组（已实测通过）
-> - 比例字段为 `aspectRatio`（驼峰），接受比例如 `3:4` 或像素如 `1024x1024`
-> - 新增 `quality` 配置，默认 `auto`；`gpt-image-2` 与 `gpt-image-2.5` 只接受 `auto`
-> - 默认模型为 `gpt-image-2.5`，默认地址为 `https://grsaiapi.com/v1`
-> - 对 `-vip` / `-flare` / `-sunburst` 这类只接受像素值的模型，比例会自动映射到 1K 像素尺寸
-> - 不传比例时向接口发 `auto`（由服务端决定），上述只吃像素的模型回落到 `1024x1024`
-> - `quality` 按模型校验，传错在本地就报错，不浪费一次请求
-> - `responseFormat` 已不再发送，保留该配置项只为兼容旧 profile
+> - 比例字段为 `aspectRatio`（驼峰），接受比例如 `3:4` 或像素如 `1024x1024`；不传则发 `auto`
+> - **不校验模型**：`model` 原样发给中转站，插件不内置模型清单
+> - `quality` / `background` / `outputFormat` 三个可选参数，可用值由配置里的 `qualityOptions` / `backgroundOptions` / `outputFormatOptions` 列表决定，列表可自行增删
+> - 部分模型变体只接受像素值，插件不做映射：传比例被拒时改传像素即可
+> - 默认地址为 `https://grsaiapi.com/v1`
 
 **社区插件标签**：`dsh-plugin` · `deepseek-harness` · `cordis` · `bundle` · `text-to-image` · `image-to-image` · `image-generation` · `ai-image` · `image-relay` · `openai-compatible` · `inline-media` · `web-ui` · `tool`
 
@@ -127,25 +125,37 @@ dsh --profile image2-demo --from-default-profile web --dump-config
 - id: image2
   name: dsh-grsai-image
   config:
-    baseUrl: https://your-image-relay.example.com/v1
-    model: grok-imagine-image-2.0
+    baseUrl: https://grsaiapi.com/v1
+    model: gpt-image-2.6          # 任意中转站接受的模型 ID，插件不做校验
+    quality: auto                 # 调用不传 quality 时的默认值
+    qualityOptions: [auto, low, medium, high, xhigh, max]
+    background: ""                # 留空 = 不发送该字段
+    backgroundOptions: [transparent]
+    outputFormat: ""              # 留空 = 不发送该字段
+    outputFormatOptions: [png, gif, svg]
     apiKeyEnv: IMAGE2_API_KEY
     autoGenerateAssets: false
     outputDir: imagegen-output
     timeoutMs: 180000
-    responseFormat: b64_json
 ```
 
 | 字段 | 说明 |
 | --- | --- |
-| `baseUrl` | 中转站地址（OpenAI 兼容，含 `/v1`） |
-| `model` | 模型名，**必须**是该中转站 `/v1/models` 里真实存在的名字，否则调用返回 404 |
+| `baseUrl` | 中转站地址，含 `/v1` |
+| `model` | 模型 ID，原样发送；插件不校验、不内置模型清单 |
+| `quality` | 默认质量档位；调用可覆盖 |
+| `qualityOptions` | 允许的 `quality` 值列表。空数组表示不限制 |
+| `background` | 默认背景值；**空字符串表示完全不发送该字段** |
+| `backgroundOptions` | 允许的 `background` 值列表 |
+| `outputFormat` | 默认输出格式；**空字符串表示完全不发送该字段** |
+| `outputFormatOptions` | 允许的 `outputFormat` 值列表 |
 | `apiKeyEnv` | API key 的**环境变量名**（不是 key 本身） |
 | `apiKey` | 设置页里的遮蔽字段；非空时优先于 `apiKeyEnv`，后者作为兜底 |
 | `autoGenerateAssets` | 是否允许在软件开发任务中自动补齐缺失位图素材，默认 `false` |
 | `outputDir` | 输出目录，相对会话目录解析并强制不越界 |
 | `timeoutMs` | 单次请求超时 |
-| `responseFormat` | 向中转站索要的返回格式，默认 `b64_json`（图片字节内联回传）。设 `url` 则让插件去下载中转站给的链接；设为**空字符串**则完全不发这个字段，给不接受它的中转站用 |
+
+> 三个 `*Options` 列表目前只能在 `cordis.patch.yml` 里改（设置页只有单值输入框）。校验只在本地做形状检查：值不在列表里会直接报错并列出可选值，不会浪费一次请求。
 
 API key 交给**启动 DSH 的那个进程**：
 

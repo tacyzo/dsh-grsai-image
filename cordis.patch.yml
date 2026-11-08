@@ -3,8 +3,13 @@
       name: dsh-grsai-image
       config:
         baseUrl: https://grsaiapi.com/v1
-        model: gpt-image-2.5
+        model: gpt-image-2.6
         quality: auto
+        qualityOptions: [auto, low, medium, high, xhigh, max]
+        background: ''
+        backgroundOptions: [transparent]
+        outputFormat: ''
+        outputFormatOptions: [png, gif, svg]
         apiKeyEnv: IMAGE2_API_KEY
         autoGenerateAssets: false
         outputDir: imagegen-output
