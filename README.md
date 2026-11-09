@@ -148,6 +148,14 @@ dsh --profile image2-demo --from-default-profile web --dump-config
 
 > **配置里只有模型名需要你操心。** 比例、质量、背景、输出格式都不写进配置：agent 在每次调用时按中转站实时文档（`POST /v1/api/generate`）为当前模型挑选合适的值，插件原样转发，不做校验、不加默认。
 
+## 使用约定（写给 agent）
+
+- **超时即停，不重试**。如实说明任务可能仍在服务端运行、可能已经计费。
+- 参数值以 `docsUrl` 指向的文档为准；读不到文档就按已知约束保守传值，不猜。
+- `outputFormat: svg` 的结果**无法直接视觉核对**（宿主 `read_image` 只支持 PNG/JPEG/WebP/GIF）。需先栅格化再判断，做不到时必须说明「未验证」。
+- `outputFormat: gif` 可能返回**动图**，即使提示词要的是静态图。
+- 中文提示词里写「矢量风格」只是画面观感；要真矢量文件必须传 `outputFormat: svg`。
+
 API key 交给**启动 DSH 的那个进程**：
 
 ```powershell

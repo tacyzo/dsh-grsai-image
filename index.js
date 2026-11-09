@@ -180,7 +180,10 @@ export function apply(ctx, config) {
       'Announce specific mismatches and the retry number before retrying, preserving core requirements and previous images. ' +
       'Allow one initial generation and at most five further generation requests per task, including failed requests; stop when accepted or the budget is exhausted. ' +
       'quality, background and outputFormat are forwarded verbatim: read the relay documentation for the chosen model and pass the values it supports, or omit them. ' +
-      'The documentation lives at ' + (initial.docsUrl || 'the relay docs') + ' — read it before choosing parameter values.',
+      'The documentation lives at ' + (initial.docsUrl || 'the relay docs') + ' — read it before choosing parameter values. ' +
+      'If the call times out, do not retry: report that the task may still be running on the relay and may have been billed, then stop. ' +
+      'An SVG result cannot be inspected by read_image directly; rasterize it first (for example a headless browser screenshot) before judging it, and say so if you cannot. ' +
+      'A gif result may come back animated even when the prompt asked for a still image.',
     parameters: {
       prompt: { type: 'string', required: true, description: 'A specific visual description for the image.' },
       image: { type: 'string', description: 'Optional path to a local PNG, JPEG or WebP reference image, absolute or relative to the session project. When set, the relay runs image-to-image instead of text-to-image and keeps the reference subject, style and palette.' },
