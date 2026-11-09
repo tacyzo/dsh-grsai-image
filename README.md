@@ -133,6 +133,7 @@ dsh --profile image2-demo --from-default-profile web --dump-config
     autoGenerateAssets: false
     outputDir: imagegen-output
     timeoutMs: 180000
+    pollIntervalMs: 3000
 ```
 
 | 字段 | 说明 |
@@ -144,13 +145,16 @@ dsh --profile image2-demo --from-default-profile web --dump-config
 | `apiKey` | 设置页里的遮蔽字段；非空时优先于 `apiKeyEnv`，后者作为兜底 |
 | `autoGenerateAssets` | 是否允许在软件开发任务中自动补齐缺失位图素材，默认 `false` |
 | `outputDir` | 输出目录，相对会话目录解析并强制不越界 |
-| `timeoutMs` | 单次请求超时 |
+| `timeoutMs` | 一次生成的**总预算**（含轮询与下载） |
+| `pollIntervalMs` | 任务运行中多久查一次状态，默认 3000 |
+
+> 提交走 `replyType: "async"`：先拿到任务 id，再按 `pollIntervalMs` 轮询 `GET /v1/api/result?id=<id>`，直到 `succeeded` / `failed` / `violation`。预算用尽时**不重试**，直接报出任务 id 与进度；该 id 在任务结束后 2 小时内仍可查询。
 
 > **配置里只有模型名需要你操心。** 比例、质量、背景、输出格式都不写进配置：agent 在每次调用时按中转站实时文档（`POST /v1/api/generate`）为当前模型挑选合适的值，插件原样转发，不做校验、不加默认。
 
 ## 使用约定（写给 agent）
 
-- **超时即停，不重试**。如实说明任务可能仍在服务端运行、可能已经计费。
+- **预算用尽即停，不重试**。插件会自己轮询任务状态；预算耗尽时如实报出任务 id 与进度，并说明结果在 2 小时内仍可查询。不要重复提交同一提示词。
 - 参数值以 `docsUrl` 指向的文档为准；读不到文档就按已知约束保守传值，不猜。
 - `outputFormat: svg` 的结果**无法直接视觉核对**（宿主 `read_image` 只支持 PNG/JPEG/WebP/GIF）。需先栅格化再判断，做不到时必须说明「未验证」。
 - `outputFormat: gif` 可能返回**动图**，即使提示词要的是静态图。

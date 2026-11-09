@@ -19,7 +19,8 @@ export const Config = Schema.object({
   apiKeyEnv: Schema.string().default('IMAGE2_API_KEY').description('Environment variable containing the image relay API key.').volatile(),
   autoGenerateAssets: Schema.boolean().default(false).description('Allow missing visual assets to be generated during software development after checking existing and external resources.').volatile(),
   outputDir: Schema.string().default('imagegen-output').description('Output directory inside the current session project.').volatile(),
-  timeoutMs: Schema.number().min(1).max(2147483647).default(180000).description('Timeout for each complete relay or image download request, in milliseconds.').volatile(),
+  timeoutMs: Schema.number().min(1).max(2147483647).default(180000).description('Total budget for one generation, including polling and the final download, in milliseconds.').volatile(),
+  pollIntervalMs: Schema.number().min(500).max(60000).default(3000).description('How often to ask the relay for the task status while it is still running.').volatile(),
 })
 
 const MIME_BY_EXTENSION = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }
@@ -47,10 +48,35 @@ function callerOption(requested) {
   return typeof requested === 'string' ? requested.trim() : ''
 }
 
-function imageEndpoint(baseUrl) {
+function apiBase(baseUrl) {
   let normalized = baseUrl.trim().replace(/\/+$/, '')
   if (!/\/v\d+$/i.test(normalized)) normalized += '/v1'
-  return `${normalized}/api/generate`
+  return normalized
+}
+
+function imageEndpoint(baseUrl) {
+  return `${apiBase(baseUrl)}/api/generate`
+}
+
+// The asynchronous result endpoint takes the task id as a query parameter and
+// keeps answering for two hours after the task reaches a terminal state.
+function resultEndpoint(baseUrl) {
+  return `${apiBase(baseUrl)}/api/result`
+}
+
+function delay(ms, signal) {
+  if (signal?.aborted) return Promise.reject(signal.reason)
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer)
+      reject(signal.reason)
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener?.('abort', onAbort)
+      resolve()
+    }, ms)
+    signal?.addEventListener?.('abort', onAbort, { once: true })
+  })
 }
 
 function assertInside(root, output) {
@@ -181,7 +207,7 @@ export function apply(ctx, config) {
       'Allow one initial generation and at most five further generation requests per task, including failed requests; stop when accepted or the budget is exhausted. ' +
       'quality, background and outputFormat are forwarded verbatim: read the relay documentation for the chosen model and pass the values it supports, or omit them. ' +
       'The documentation lives at ' + (initial.docsUrl || 'the relay docs') + ' — read it before choosing parameter values. ' +
-      'If the call times out, do not retry: report that the task may still be running on the relay and may have been billed, then stop. ' +
+      'The call submits asynchronously and polls the relay itself until the task settles; if the budget runs out it reports the task id and progress instead of retrying — do not resubmit the same prompt. ' +
       'An SVG result cannot be inspected by read_image directly; rasterize it first (for example a headless browser screenshot) before judging it, and say so if you cannot. ' +
       'A gif result may come back animated even when the prompt asked for a still image.',
     parameters: {
@@ -232,7 +258,7 @@ export function apply(ctx, config) {
         model,
         prompt,
         aspectRatio: resolveAspectRatio(args.aspectRatio || args.size),
-        replyType: 'json',
+        replyType: 'async',
       }
       // Generation knobs stay caller-driven: the agent reads the relay docs for the
       // chosen model, so the plugin forwards whatever it was given and adds nothing.
@@ -260,15 +286,47 @@ export function apply(ctx, config) {
         const snippet = responseText.slice(0, 160).replace(/\s+/g, ' ')
         throw new Error('Image relay returned invalid JSON (HTTP ' + response.status + '): ' + snippet)
       }
-      if (!response.ok || body?.status === 'failed' || body?.status === 'violation') {
-        const raw = body?.error ?? body?.message ?? 'Request rejected'
+      const relayFailure = (failureBody, status) => {
+        const raw = failureBody?.error ?? failureBody?.message ?? 'Request rejected'
         const text = typeof raw === 'string' ? raw : (raw?.message ?? JSON.stringify(raw))
         const message = String(text).split(apiKey).join('[redacted]')
-        throw new Error('Image relay request failed (HTTP ' + response.status + '): ' + message.slice(0, 300))
+        return new Error('Image relay request failed (HTTP ' + status + '): ' + message.slice(0, 300))
       }
-      if (body?.status !== 'succeeded') {
-        throw new Error('Image task not finished (status: ' + String(body?.status) + ').')
+
+      if (!response.ok || body?.status === 'failed' || body?.status === 'violation') {
+        throw relayFailure(body, response.status)
       }
+
+      // An asynchronous submit answers with a task id and `running`; poll the
+      // result endpoint until it settles. There is no retry: an exhausted budget
+      // reports the task id and stops, and the relay keeps that id queryable.
+      const deadline = Date.now() + Math.max(15000, settings.timeoutMs - 5000)
+      while (body?.status !== 'succeeded') {
+        const taskId = typeof body?.id === 'string' ? body.id.trim() : ''
+        if (taskId === '') throw new Error('Image relay returned neither a finished result nor a task id.')
+        if (Date.now() + settings.pollIntervalMs > deadline) {
+          throw new Error(
+            'Image task still running after ' + Math.round(settings.timeoutMs / 1000) + ' s (id ' + taskId +
+            ', progress ' + String(body?.progress ?? '?') + ' %). Not retrying. The result stays queryable at ' +
+            resultEndpoint(settings.baseUrl) + '?id=' + taskId + ' for two hours.',
+          )
+        }
+        await delay(settings.pollIntervalMs, exec?.signal)
+        const consult = await fetch(resultEndpoint(settings.baseUrl) + '?id=' + encodeURIComponent(taskId), {
+          headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
+          signal: AbortSignal.timeout(Math.min(30000, settings.timeoutMs)),
+        })
+        const consultText = await consult.text()
+        let polled
+        try {
+          polled = JSON.parse(consultText)
+        } catch {
+          throw new Error('Result query returned invalid JSON (HTTP ' + consult.status + '): ' + consultText.slice(0, 160).replace(/\s+/g, ' '))
+        }
+        if (!consult.ok) throw relayFailure(polled, consult.status)
+        body = polled
+      }
+      exec?.signal?.throwIfAborted()
 
       const item = body?.results?.[0]
       if (!item?.url) throw new Error('Image relay returned no image url.')

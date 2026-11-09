@@ -9,3 +9,4 @@
         autoGenerateAssets: false
         outputDir: imagegen-output
         timeoutMs: 180000
+        pollIntervalMs: 3000

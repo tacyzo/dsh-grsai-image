@@ -1,6 +1,6 @@
 {
   "name": "dsh-grsai-image",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "DeepSeek Harness bundle that exposes a grsai-native image API (POST /v1/api/generate) as the image2_generate tool for text-to-image and image-to-image, with inline media previews.",
   "type": "module",
   "main": "index.js",
